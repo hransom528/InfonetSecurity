@@ -26,7 +26,6 @@ if __name__ == "__main__":
 	n = int(input("Modular base: "))
 	
 	isValid, phi = eulersTheorem(a, n)
-	print(gcdRecursive(a, n))
 	if (isValid):
 		print(f"Euler Totient Function phi({n}): {phi}")
 		print(f"a^(phi(n)): {a**phi} == 1 (mod {n})")
