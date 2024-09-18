@@ -13,6 +13,15 @@ def totient(n):
 			count += 1
 	return count
 
+def totientExplicit(n):
+	count = 0
+	print("Number: \t Count: ")
+	for i in range (1, n+1):
+		if (gcdRecursive(n, i) == 1):
+			count += 1
+			print(f"{i} \t {count}")
+	return count
+
 # Test Euler's Theorem
 # a ^ (phi(n)) = 1 (mod n)
 def eulersTheorem(a, n):
