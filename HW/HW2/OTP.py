@@ -28,7 +28,7 @@ def otpDecrypt(c, k):
 # MAIN
 if __name__ == "__main__":
 	plaintext = "helloAlice!"
-	key = "$%wB+=?Qz?4"
+	key = "$%wB+=?Qz?4" # I know defining a key in plaintext is bad practice, but it's just for testing purposes
 
 	# Encrypt plaintext
 	ciphertext = otpEncrypt(plaintext, key)
