@@ -5,6 +5,9 @@
 
 # Imports
 
+# Generates large primes p, q (mod 3)
+def genPrimes():
+	pass
 
 # Generates N pseudo-random bits
 def bbsGenerate(p, q, seed, N):
