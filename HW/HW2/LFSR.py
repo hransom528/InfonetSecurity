@@ -8,7 +8,12 @@
 
 # LFSR Implementation
 def LFSR(initialBits, N):
-	pass
+	if (len(initialBits) != 12):
+		raise ValueError("Initial bits must be 12 bits long")
+	
+	# Initialize LFSR
+	x = initialBits
+	
 
 # MAIN
 if __name__ == "__main__":
