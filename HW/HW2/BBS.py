@@ -13,9 +13,10 @@ def coprime(a, b):
     return gcd(a, b) == 1
 
 # Generates N pseudo-random bits
-def bbsGenerate(p, q, seed, N):
+def bbsGenerate(p, q, seed, numBits):
 	prngBits = []
 	x = []
+	n = p*q
 
 	# Initialize with seed value
 	x0 = (seed**2) % n
@@ -23,7 +24,7 @@ def bbsGenerate(p, q, seed, N):
 	prngBits.append(x0 % 2)
 
 	# Generate rest of the bits
-	for i in range(0, N-1):
+	for i in range(0, numBits-1):
 		xi = (x[i] ** 2) % n
 		x.append(xi)
 		prngBits.append(xi % 2)
