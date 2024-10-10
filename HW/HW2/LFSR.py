@@ -31,7 +31,11 @@ def LFSR(initialBits, N, table=False):
 # MAIN
 if __name__ == "__main__":
 	# Generate bits with LFSR
-	initialBits = np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0])
+	#initialBits = np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0])
+	initialBits = np.random.choice([0,1], 12)
+	while (not initialBits.any()):
+		initialBits = np.random.choice([0,1], 12)
+	print(f"Initialization Vector: {initialBits}")
 	N = 4095
 	randomBits = LFSR(initialBits, N)
 
