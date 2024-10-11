@@ -5,8 +5,24 @@
 
 # Imports
 from datetime import datetime
-from math import gcd
+from math import gcd, sqrt
 import random
+
+# Helper function to check if a number is prime
+def isPrime(n):
+    prime_flag = 0
+
+    if(n > 1):
+        for i in range(2, int(sqrt(n)) + 1):
+            if (n % i == 0):
+                prime_flag = 1
+                break
+        if (prime_flag == 0):
+            return True
+        else:
+            return False
+    else:
+        return False
 
 # Helper function to check if two numbers are relatively prime
 def coprime(a, b):
@@ -34,12 +50,16 @@ def bbsGenerate(p, q, seed, numBits):
 if __name__ == "__main__":
 	# Choose p, q, seed
 	# p = q = 3 (mod 4)
-	p = (random.randint(100000000, 10000000000) * 4) + 3 
+	p = (random.randint(100000000, 10000000000) * 4) + 3
+	while (not isPrime(p)):
+		p = (random.randint(100000000, 10000000000) * 4) + 3
 	q = (random.randint(100000000, 10000000000) * 4) + 3
-	n = p * q
+	while (not isPrime(q)):
+		q = (random.randint(100000000, 10000000000) * 4) + 3
 	seed = int(((datetime.now() - datetime(1970, 1, 1)).total_seconds()) * (10**6)) # Unix timestamp
+	n = p*q
 	while (not coprime(n, seed)):
-		seed = int(((datetime.now() - datetime(1970, 1, 1)).total_seconds()) * (10**6)) # Unix timestamp
+		seed = int(((datetime.now() - datetime(1970, 1, 1)).total_seconds()) * (10**6))
 	
 	# Generate N pseudo-random bits
 	prngBits = bbsGenerate(p, q, seed, 10**6)
