@@ -1,5 +1,5 @@
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef MESSAGE_PREPROCESS_H
+#define MESSAGE_PREPROCESS_H
 
 #include <iostream>
 #include <sstream>
@@ -169,4 +169,4 @@ class EncodedBlocks {
 		return ss.str();
 	}
 };
-#endif // MAIN_H
+#endif // MMESSAGE_PREPROCESS_H

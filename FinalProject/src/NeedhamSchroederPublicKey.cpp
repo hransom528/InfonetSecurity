@@ -4,6 +4,7 @@
 #include <openssl/rand.h>
 #include <string>
 #include <unordered_map>
+#include "MessagePreprocess.h"
 
 // RSA encryption
 std::string rsa_encrypt(const std::string& plaintext, RSA* key) {

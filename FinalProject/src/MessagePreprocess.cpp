@@ -5,7 +5,7 @@
 #include <bitset>
 #include <cmath>
 #include <random>
-#include "main.h"
+#include "MessagePreprocess.h"
 using namespace std;
 
 // Helper function to generate a random set of bits

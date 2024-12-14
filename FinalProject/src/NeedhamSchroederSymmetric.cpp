@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <vector>
 #include <string.h>
-#include "main.h"
+#include "MessagePreprocess.h"
 using namespace std;
 
 void generate_random_key(unsigned char* key, size_t size) {
