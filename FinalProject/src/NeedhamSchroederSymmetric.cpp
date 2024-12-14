@@ -3,6 +3,16 @@
 #include <openssl/rand.h>
 #include <string>
 #include <unordered_map>
+#include <bitset>
+#include <cmath>
+#include <random>
+#include <sstream>
+#include <stdlib.h>
+#include <stdexcept>
+#include <vector>
+#include <string.h>
+#include "main.h"
+using namespace std;
 
 void generate_random_key(unsigned char* key, size_t size) {
     RAND_bytes(key, size);
@@ -30,8 +40,9 @@ std::string aes_decrypt(const unsigned char* ciphertext, const unsigned char* ke
     return std::string((char*)plaintext, AES_BLOCK_SIZE);
 }
 
+// User struct
 struct User {
-    std::string id;
+    string id;
     unsigned char key[AES_BLOCK_SIZE];
 };
 
@@ -46,35 +57,70 @@ int main() {
     generate_random_key(Alice.key, AES_BLOCK_SIZE);
     generate_random_key(Bob.key, AES_BLOCK_SIZE);
     generate_random_key(TTP.key, AES_BLOCK_SIZE);
-
+	
     ttp_user_table[Alice.id] = Alice;
     ttp_user_table[Bob.id] = Bob;
 
     unsigned char session_key[AES_BLOCK_SIZE];
     generate_random_key(session_key, AES_BLOCK_SIZE);
 
-    // Step 1: Alice → TTP: E(KA, IDA∥IDB ∥NA)
     unsigned char nonce_A[AES_BLOCK_SIZE];
     generate_random_key(nonce_A, AES_BLOCK_SIZE);
-    std::string step1_message = aes_encrypt((unsigned char*)(Alice.id + Bob.id + std::string((char*)nonce_A, AES_BLOCK_SIZE)).c_str(), Alice.key);
-    std::cout << "Step 1: Alice to TTP encrypted message: " << step1_message << std::endl;
 
-    // Step 2: TTP → Alice: E(KA, IDB ∥NA∥KAB ∥E(KB , KAB ∥IDA))
-    std::string kb_kab_ida = aes_encrypt((unsigned char*)(std::string((char*)session_key, AES_BLOCK_SIZE) + Alice.id).c_str(), Bob.key);
-    std::string step2_response = aes_encrypt((unsigned char*)(Bob.id + std::string((char*)nonce_A, AES_BLOCK_SIZE) + std::string((char*)session_key, AES_BLOCK_SIZE) + kb_kab_ida).c_str(), Alice.key);
-    std::cout << "Step 2: TTP to Alice encrypted message: " << step2_response << std::endl;
-
-    // Step 3: Alice → Bob: E(KB , KAB ∥IDA)
-    std::string step3_message = aes_encrypt((unsigned char*)(std::string((char*)session_key, AES_BLOCK_SIZE) + Alice.id).c_str(), Bob.key);
-    std::cout << "Step 3: Alice to Bob encrypted key: " << step3_message << std::endl;
-
-    // Step 4: Bob → Alice: E(KAB , NB) 
-    // protocol in paper 1: B -> A: {B, Na, Nb}Ka
-    // adjusted Step 4: Bob → Alice: E(KAB , B || NA || NB) 
     unsigned char nonce_B[AES_BLOCK_SIZE];
     generate_random_key(nonce_B, AES_BLOCK_SIZE);
-    std::string encrypted_nonce_B = aes_encrypt((unsigned char*)(Bob.id + std::string((char*)nonce_A, AES_BLOCK_SIZE) + std::string((char*)nonce_B, AES_BLOCK_SIZE)).c_str(), session_key);    
-    std::cout << "Step 4: Bob to Alice, encrypted nonce (B, NA, NB): " << encrypted_nonce_B << std::endl;
+    
+    // Relevant Message Blocks
+    MessageBlock<unsigned char> Alice_ID(Alice.id.size(), vector<unsigned char>(Alice.id.begin(), Alice.id.end()));
+
+    MessageBlock<unsigned char> Bob_ID(Bob.id.size(), vector<unsigned char>(Bob.id.begin(), Bob.id.end()));
+    MessageBlock<unsigned char> Alice_Nonce(AES_BLOCK_SIZE, vector<unsigned char>(nonce_A, nonce_A + AES_BLOCK_SIZE));
+    MessageBlock<unsigned char> Bob_Nonce(AES_BLOCK_SIZE, vector<unsigned char>(nonce_B, nonce_B + AES_BLOCK_SIZE));
+    MessageBlock<unsigned char> Session_Key(AES_BLOCK_SIZE, vector<unsigned char>(session_key, session_key + AES_BLOCK_SIZE));
+
+    // Step 1: Alice → TTP: E(KA, IDA∥IDB ∥NA)
+    EncodedBlocks step1_blocks(3);
+    step1_blocks.AddMessageBlock(&Alice_ID);
+    step1_blocks.AddMessageBlock(&Bob_ID);
+    step1_blocks.AddMessageBlock(&Alice_Nonce);
+    const unsigned char *encoded_step1 = step1_blocks.EncodeBuffer();
+    cout << "Step 1: Alice to TTP unencrypted message: " << step1_blocks.toString() << endl;
+    string step1_message = aes_encrypt(encoded_step1, Alice.key);
+
+    // Step 2: TTP → Alice: E(KA, IDB ∥NA∥KAB ∥E(KB , KAB ∥IDA))    
+    EncodedBlocks step2A_blocks(2);
+    step2A_blocks.AddMessageBlock(&Session_Key);
+    step2A_blocks.AddMessageBlock(&Alice_ID);
+    const unsigned char *encoded_step2A = step2A_blocks.EncodeBuffer();
+    string step2A = aes_encrypt(encoded_step2A, Bob.key);
+    MessageBlock<unsigned char> KB_KAB_IDA(step2A.size(), vector<unsigned char>(step2A.begin(), step2A.end()));
+    
+    EncodedBlocks step2_blocks(4);
+    step2_blocks.AddMessageBlock(&Bob_ID);
+    step2_blocks.AddMessageBlock(&Alice_Nonce);
+    step2_blocks.AddMessageBlock(&Session_Key);
+    step2_blocks.AddMessageBlock(&KB_KAB_IDA);
+    const unsigned char *encoded_step2 = step2_blocks.EncodeBuffer();
+    cout << "Step 2: TTP to Alice unencrypted message: " << step2_blocks.toString() << endl;
+    string step2_message = aes_encrypt(encoded_step2, Alice.key);
+
+    // Step 3: Alice → Bob: E(KB , KAB ∥IDA)
+    EncodedBlocks step3_blocks(2);
+    step3_blocks.AddMessageBlock(&Session_Key);
+    step3_blocks.AddMessageBlock(&Alice_ID);
+    const unsigned char *encoded_step3 = step3_blocks.EncodeBuffer();
+    cout << "Step 3: Alice to Bob unencrypted key: " << step3_blocks.toString() << endl;
+    string step3_message = aes_encrypt(encoded_step3, Bob.key);
+
+    // Step 4: Bob → Alice: E(KAB , NB) 
+    // adjusted Step 4: Bob → Alice: E(KAB , IDB || NA || NB) 
+    EncodedBlocks step4_blocks(3);
+    step4_blocks.AddMessageBlock(&Bob_ID);
+    step4_blocks.AddMessageBlock(&Alice_Nonce);
+    step4_blocks.AddMessageBlock(&Bob_Nonce);
+    const unsigned char *encoded_step4 = step4_blocks.EncodeBuffer();
+    cout << "Step 4: Bob to Alice unencrypted nonce: " << step4_blocks.toString() << endl;
+    string step4_message = aes_encrypt(encoded_step4, session_key);
 
     // Step 5: Alice → Bob: E(KAB , NB −1)
     for (int i = AES_BLOCK_SIZE - 1; i >= 0; --i) {
@@ -83,8 +129,8 @@ int main() {
             break;
         }
     }
-    std::string step5_response = aes_encrypt(nonce_B, session_key);
-    std::cout << "Step 5: Alice to Bob, encrypted (NB-1): " << step5_response << std::endl;
+    string step5_message = aes_encrypt(nonce_B, session_key);
+    cout << "Step 5: Alice to Bob, encrypted (NB-1): " << step5_message << endl;
 
     return 0;
 }
