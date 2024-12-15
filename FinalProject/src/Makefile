@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -g -Wall -lssl -lcrypto
+CFLAGS = -g -Wall -lssl -lcrypto -lcryptopp
 DEPS = MessagePreprocess.h
 	
 .PHONY : all

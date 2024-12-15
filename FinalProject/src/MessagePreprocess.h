@@ -62,7 +62,7 @@ template <typename T> class MessageBlock {
 class EncodedBlocks {
 	public:
 		uint8_t k;
-		std::vector<MessageBlock<unsigned char>> messageBlocks;
+		std::vector<MessageBlock<unsigned char> > messageBlocks;
 
 	// Constructor
 	EncodedBlocks(uint8_t k) {
@@ -74,7 +74,7 @@ class EncodedBlocks {
 	}
 
 	// Constructor with pre-defined message block vector
-	EncodedBlocks(uint8_t k, std::vector<MessageBlock<unsigned char>> vec) {
+	EncodedBlocks(uint8_t k, std::vector<MessageBlock<unsigned char> > vec) {
 		// Initialize message count k
 		if (k > 32) {
 			throw std::invalid_argument("Size k is too large for 5 bits!");
@@ -136,7 +136,7 @@ class EncodedBlocks {
 		//cout << "K: " << unsigned(k) << endl;
 
 		// Decode each message block
-		std::vector<MessageBlock<unsigned char>> messageBlocks;
+		std::vector<MessageBlock<unsigned char> > messageBlocks;
 		unsigned char *currPointer = &concatBuf[1]; 
 		for (int i = 0; i < k; i++) {
 			// Get size	
@@ -167,6 +167,15 @@ class EncodedBlocks {
 		}
 		ss << "]" << std::endl;
 		return ss.str();
+	}
+
+	// Calculates the total encoded size of the buffer
+	int EncodedSize() {
+		int size = 1 + this->k;
+		for (int i = 0; i < k; i++) {
+			size += messageBlocks.at(i).getSize();
+		}
+		return size;
 	}
 };
 #endif // MMESSAGE_PREPROCESS_H

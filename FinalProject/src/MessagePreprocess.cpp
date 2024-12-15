@@ -51,7 +51,7 @@ int main(int argc, char * argv[]) {
 	printVec<uint8_t>(messageSizes);
 
 	// Randomly generate messages for each ni
-	vector<vector<unsigned char>> messages;
+	vector<vector<unsigned char> > messages;
 	for (int i = 0; i < k; i++) {
 		uint8_t ni = messageSizes.at(i);
 		vector<unsigned char> mi = random_bitset(ni, 0.5); 
@@ -60,7 +60,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	// Encode messages into message block objects
-	vector<MessageBlock<unsigned char>> messageBlocks;
+	vector<MessageBlock<unsigned char> > messageBlocks;
 	for (int i = 0; i < k; i++) {
 		MessageBlock<unsigned char> mb(messageSizes[i], messages[i]);
 		messageBlocks.push_back(mb);
