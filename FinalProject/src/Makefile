@@ -9,19 +9,19 @@ all: MessagePreprocess.exe NeedhamSchroederSymmetric.exe NeedhamSchroederPublicK
 #	$(CC) $< $(CFLAGS) -c -o $@
 	  
 MessagePreprocess.exe: MessagePreprocess.cpp
-	$(CC) -o MessagePreprocess.exe MessagePreprocess.cpp $(CFLAGS)
+	$(CC) -o ../bin/MessagePreprocess.exe MessagePreprocess.cpp $(CFLAGS)
 
 NeedhamSchroederSymmetric.exe: NeedhamSchroederSymmetric.cpp
-	$(CC) -o NeedhamSchroederSymmetric.exe NeedhamSchroederSymmetric.cpp $(CFLAGS)
+	$(CC) -o ../bin/NeedhamSchroederSymmetric.exe NeedhamSchroederSymmetric.cpp $(CFLAGS)
 
 NeedhamSchroederPublicKey.exe: NeedhamSchroederPublicKey.cpp
-	$(CC) -o NeedhamSchroederPublicKey.exe NeedhamSchroederPublicKey.cpp $(CFLAGS)
+	$(CC) -o ../bin/NeedhamSchroederPublicKey.exe NeedhamSchroederPublicKey.cpp $(CFLAGS)
 
 NeedhamSchroederSymmetricCTR.exe: NeedhamSchroederSymmetricCTR.cpp
-	$(CC) -o NeedhamSchroederSymmetricCTR.exe NeedhamSchroederSymmetricCTR.cpp $(CFLAGS)
+	$(CC) -o ../bin/NeedhamSchroederSymmetricCTR.exe NeedhamSchroederSymmetricCTR.cpp $(CFLAGS)
 
 NeedhamSchroederModeComparison.exe: NeedhamSchroederModeComparison.cpp
-	$(CC) -o NeedhamSchroederModeComparison.exe NeedhamSchroederModeComparison.cpp $(CFLAGS)
+	$(CC) -o ../bin/NeedhamSchroederModeComparison.exe NeedhamSchroederModeComparison.cpp $(CFLAGS)
 
 clean:
-	rm *.exe
+	rm ../bin/*.exe
