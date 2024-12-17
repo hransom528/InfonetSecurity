@@ -69,11 +69,20 @@ int main(int argc, char * argv[]) {
 
 	// Create encoded block object
 	EncodedBlocks concat(k, messageBlocks);
-	cout << concat.toString();
+	string concatString = concat.toString();
+	cout << "Encoded Message Blocks: " << endl;
+	cout << concatString;
 
 	// Test encoding/decoding
 	unsigned char *buf = (unsigned char *) concat.EncodeBuffer();
 	EncodedBlocks decodeTest = EncodedBlocks::DecodeBuffer(buf);
-	cout << decodeTest.toString();
+	string decodedString = decodeTest.toString();
+	cout << "\nDecoded Message Blocks: " << endl;
+	cout << decodedString;
+
+	// Check if encoded and decoded strings are the same
+	if (concatString == decodedString) {
+		cout << "Encoded and decoded buffers match!" << endl;
+	}
 	return 0;
 }
