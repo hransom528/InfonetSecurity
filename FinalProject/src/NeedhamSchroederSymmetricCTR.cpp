@@ -18,36 +18,38 @@ void generate_random_key(unsigned char* key, size_t size) {
     RAND_bytes(key, size);
 }
 
-// AES encryption
-std::string aes_encrypt(const unsigned char* plaintext, const unsigned char* key) {
-    unsigned char ciphertext[AES_BLOCK_SIZE];
-
+// AES encryption in CTR mode
+void aes_ctr_encrypt(const unsigned char* plaintext, unsigned char* ciphertext, size_t length, const unsigned char* key, unsigned char* iv) {
     AES_KEY aesKey;
-    AES_set_encrypt_key(key, 128, &aesKey);
-    AES_ecb_encrypt(plaintext, ciphertext, &aesKey, AES_ENCRYPT);
-
-    return std::string((char*)ciphertext, AES_BLOCK_SIZE);
+    AES_set_encrypt_key(key, 128, &aesKey);    
+    unsigned char counter[AES_BLOCK_SIZE];
+    unsigned char keystream[AES_BLOCK_SIZE];
+    memcpy(counter, iv, AES_BLOCK_SIZE);
+    
+    for (size_t i = 0; i < length; i += AES_BLOCK_SIZE) {
+        AES_encrypt(counter, keystream, &aesKey);
+        
+        size_t block_size = std::min<size_t>(AES_BLOCK_SIZE, length - i);
+        for (size_t j = 0; j < block_size; ++j) {
+            ciphertext[i + j] = plaintext[i + j] ^ keystream[j];
+        }
+        
+        for (int j = AES_BLOCK_SIZE - 1; j >= 0; --j) {
+            if (++counter[j] != 0) break;
+        }
+    }
 }
 
-// AES decryption
-std::string aes_decrypt(const unsigned char* ciphertext, const unsigned char* key) {
-    unsigned char plaintext[AES_BLOCK_SIZE];
-
-    AES_KEY aesKey;
-    AES_set_decrypt_key(key, 128, &aesKey);
-    AES_ecb_encrypt(ciphertext, plaintext, &aesKey, AES_DECRYPT);
-
-    return std::string((char*)plaintext, AES_BLOCK_SIZE);
+void aes_ctr_decrypt(const unsigned char* ciphertext, unsigned char* plaintext, size_t length, const unsigned char* key, unsigned char* iv) {
+    aes_ctr_encrypt(ciphertext, plaintext, length, key, iv);
 }
 
-// User struct
 struct User {
     string id;
     unsigned char key[AES_BLOCK_SIZE];
 };
 
 int main() {
-    // TTP table
     std::unordered_map<std::string, User> ttp_user_table;
 
     User Alice = {"Alice", {0}};
@@ -69,7 +71,10 @@ int main() {
 
     unsigned char nonce_B[AES_BLOCK_SIZE];
     generate_random_key(nonce_B, AES_BLOCK_SIZE);
-    
+
+    unsigned char iv[AES_BLOCK_SIZE];
+    RAND_bytes(iv, AES_BLOCK_SIZE);
+
     // Relevant Message Blocks
     MessageBlock<unsigned char> Alice_ID(Alice.id.size(), vector<unsigned char>(Alice.id.begin(), Alice.id.end()));
     MessageBlock<unsigned char> Bob_ID(Bob.id.size(), vector<unsigned char>(Bob.id.begin(), Bob.id.end()));
@@ -83,6 +88,7 @@ int main() {
     EncodedBlocks A_to_B(1);
     A_to_B.AddMessageBlock(&Alice_ID);
     const unsigned char *encoded_first_message = A_to_B.EncodeBuffer();
+    
 
     // B - > A {A,J}KB, where J is a nonce identifier which will be kept by B
     unsigned char nonce_J[AES_BLOCK_SIZE];
@@ -92,7 +98,9 @@ int main() {
     B_to_A.AddMessageBlock(&Alice_ID);
     B_to_A.AddMessageBlock(&J_Nonce);
     const unsigned char *encoded_nonce_message = B_to_A.EncodeBuffer();
-    string nonce_message = aes_encrypt(encoded_nonce_message, Bob.key);
+    int size = B_to_A.EncodedSize();
+    unsigned char nonce_message[size];
+    aes_ctr_encrypt(encoded_nonce_message, nonce_message, size, Bob.key, iv);
     
     // Step 1: Alice → TTP: E(KA, IDA∥IDB ∥NA)
     // paper protocol: A - > AS (A,B,{A,J} KB)
@@ -101,8 +109,10 @@ int main() {
     step1A_blocks.AddMessageBlock(&Alice_ID);
     step1A_blocks.AddMessageBlock(&J_Nonce);
     const unsigned char *encoded_step1A = step1A_blocks.EncodeBuffer();
-    string step1A = aes_encrypt(encoded_step1A, Bob.key);
-    MessageBlock<unsigned char> additional_nonce(step1A.size(), vector<unsigned char>(step1A.begin(), step1A.end()));
+    size = step1A_blocks.EncodedSize();
+    unsigned char step1A[size];
+    aes_ctr_encrypt(encoded_step1A, step1A, size, Bob.key, iv);
+    MessageBlock<unsigned char> additional_nonce(size, vector<unsigned char>(step1A, step1A + size));
     
     EncodedBlocks step1_blocks(4);
     step1_blocks.AddMessageBlock(&Alice_ID);
@@ -111,7 +121,9 @@ int main() {
     step1_blocks.AddMessageBlock(&additional_nonce);
     const unsigned char *encoded_step1 = step1_blocks.EncodeBuffer();
     cout << "Step 1: Alice to TTP unencrypted message: " << step1_blocks.toString() << endl;
-    string step1_message = aes_encrypt(encoded_step1, Alice.key);
+    size = step1_blocks.EncodedSize();
+    unsigned char step1_ciphertext[size];
+    aes_ctr_encrypt(encoded_step1, step1_ciphertext, size, Alice.key, iv);
 
     // Step 2: TTP → Alice: E(KA, IDB ∥NA∥KAB ∥E(KB , KAB ∥IDA))
     // paper protocol: AS - > A {CK,A,J}KB where CK is session key    
@@ -121,17 +133,21 @@ int main() {
     step2A_blocks.AddMessageBlock(&Alice_ID);
     step2A_blocks.AddMessageBlock(&J_Nonce);
     const unsigned char *encoded_step2A = step2A_blocks.EncodeBuffer();
-    string step2A = aes_encrypt(encoded_step2A, Bob.key);
-    MessageBlock<unsigned char> KB_KAB_IDA_J(step2A.size(), vector<unsigned char>(step2A.begin(), step2A.end()));
+    size = step2A_blocks.EncodedSize();
+    unsigned char step2A[size];
+    aes_ctr_encrypt(encoded_step2A, step2A, size, Bob.key, iv);
+    MessageBlock<unsigned char> additional_nonce2(size, vector<unsigned char>(step1A, step1A + size));
     
     EncodedBlocks step2_blocks(4);
     step2_blocks.AddMessageBlock(&Bob_ID);
     step2_blocks.AddMessageBlock(&Alice_Nonce);
     step2_blocks.AddMessageBlock(&Session_Key);
-    step2_blocks.AddMessageBlock(&KB_KAB_IDA_J);
+    step2_blocks.AddMessageBlock(&additional_nonce2);
     const unsigned char *encoded_step2 = step2_blocks.EncodeBuffer();
     cout << "Step 2: TTP to Alice unencrypted message: " << step2_blocks.toString() << endl;
-    string step2_message = aes_encrypt(encoded_step2, Alice.key);
+    size = step2_blocks.EncodedSize();
+    unsigned char step2_ciphertext[size];
+    aes_ctr_encrypt(encoded_step2, step2_ciphertext, size, Alice.key, iv);
 
     // Step 3: Alice → Bob: E(KB , KAB ∥IDA)
     EncodedBlocks step3_blocks(2);
@@ -139,14 +155,18 @@ int main() {
     step3_blocks.AddMessageBlock(&Alice_ID);
     const unsigned char *encoded_step3 = step3_blocks.EncodeBuffer();
     cout << "Step 3: Alice to Bob unencrypted key: " << step3_blocks.toString() << endl;
-    string step3_message = aes_encrypt(encoded_step3, Bob.key);
+    size = step3_blocks.EncodedSize();
+    unsigned char step3_ciphertext[size];
+    aes_ctr_encrypt(encoded_step3, step3_ciphertext, size, Alice.key, iv);
 
     // Step 4: Bob → Alice: E(KAB , NB) 
     EncodedBlocks step4_blocks(1);
     step4_blocks.AddMessageBlock(&Bob_Nonce);
     const unsigned char *encoded_step4 = step4_blocks.EncodeBuffer();
     cout << "Step 4: Bob to Alice unencrypted nonce: " << step4_blocks.toString() << endl;
-    string step4_message = aes_encrypt(encoded_step4, session_key);
+    size = step4_blocks.EncodedSize();
+    unsigned char step4_ciphertext[size];
+    aes_ctr_encrypt(encoded_step4, step4_ciphertext, size, Alice.key, iv);
 
     // Step 5: Alice → Bob: E(KAB , NB −1)
     for (int i = AES_BLOCK_SIZE - 1; i >= 0; --i) {
@@ -155,8 +175,10 @@ int main() {
             break;
         }
     }
-    string step5_message = aes_encrypt(nonce_B, session_key);
-    cout << "Step 5: Alice to Bob, encrypted (NB-1): " << step5_message << endl;
-
+    unsigned char step5_ciphertext[AES_BLOCK_SIZE];
+    aes_ctr_encrypt(nonce_B, step5_ciphertext, AES_BLOCK_SIZE, session_key, iv);
+    cout << "Step 5: Alice to Bob, encrypted (NB-1): " << step5_ciphertext << endl;
+    
+    cout << "Protocol execution complete" << endl;
     return 0;
 }
