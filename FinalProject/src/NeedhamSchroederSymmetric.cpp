@@ -158,5 +158,20 @@ int main() {
     string step5_message = aes_encrypt(nonce_B, session_key);
     cout << "Step 5: Alice to Bob, encrypted (NB-1): " << step5_message << endl;
 
+    cout << "\nIdentical Block Test" << endl;
+    EncodedBlocks block_test_1(1);
+    block_test_1.AddMessageBlock(&Alice_ID);
+    const unsigned char *encoded_block_test_1 = block_test_1.EncodeBuffer();
+    string block_test_1_message = aes_encrypt(encoded_block_test_1, session_key);
+
+    EncodedBlocks block_test_2(1);
+    block_test_2.AddMessageBlock(&Alice_ID);
+    const unsigned char *encoded_block_test_2 = block_test_2.EncodeBuffer();
+    string block_test_2_message = aes_encrypt(encoded_block_test_2, session_key);
+
+    cout << "Encoded Block Test 1: " << block_test_1_message << endl;
+    cout << "Encoded Block Test 2: " << block_test_2_message << endl;
+    cout << "Identical ciphertext? " << bool(block_test_1_message.compare(block_test_2_message) == 0) << endl;
+
     return 0;
 }

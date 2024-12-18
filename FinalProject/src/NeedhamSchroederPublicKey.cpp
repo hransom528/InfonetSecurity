@@ -156,8 +156,12 @@ int main() {
     }
     const unsigned char* encoded_step2 = step2_blocks.EncodeBuffer();
     int step2_size = step2_blocks.EncodedSize();
+    std::cout << "Step 2: TTP to Alice message (before digitally signed): " << encoded_step2 << std::endl;
     std::string step2_message = rsa_encrypt_chunked(encoded_step2, step2_size, TTP.private_key);
     std::cout << "Step 2: TTP to Alice encrypted message: " << step2_message << std::endl;
+
+
+
 
     // Step 3: Alice → Bob: E(KeB, NA, IDA)
     EncodedBlocks step3_blocks(2);
@@ -207,6 +211,7 @@ int main() {
     int step7_size = step7_blocks.EncodedSize();
     std::string step7_message = rsa_encrypt_chunked(encoded_step7, step7_size, Bob.public_key);
     std::cout << "Step 7: Alice to Bob, encrypted message (NB): " << step7_message << std::endl;
+
 
     return 0;
 }

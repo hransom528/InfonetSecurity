@@ -49,7 +49,7 @@ void aes_ctr_encrypt(const unsigned char* plaintext, unsigned char* ciphertext, 
     for (size_t i = 0; i < length; i += AES_BLOCK_SIZE) {
         AES_encrypt(counter, keystream, &aesKey);
         
-        size_t block_size = std::min<size_t>(AES_BLOCK_SIZE, length - i); // Explicitly cast min to size_t
+        size_t block_size = std::min<size_t>(AES_BLOCK_SIZE, length - i); 
         for (size_t j = 0; j < block_size; ++j) {
             ciphertext[i + j] = plaintext[i + j] ^ keystream[j];
         }
@@ -59,6 +59,29 @@ void aes_ctr_encrypt(const unsigned char* plaintext, unsigned char* ciphertext, 
         }
     }
 }
+
+// AES encryption
+std::string aes_ecb_encrypt(const unsigned char* plaintext, const unsigned char* key) {
+    unsigned char ciphertext[AES_BLOCK_SIZE];
+
+    AES_KEY aesKey;
+    AES_set_encrypt_key(key, 128, &aesKey);
+    AES_ecb_encrypt(plaintext, ciphertext, &aesKey, AES_ENCRYPT);
+
+    return std::string((char*)ciphertext, AES_BLOCK_SIZE);
+}
+
+// AES decryption
+std::string aes_ecb_decrypt(const std::string& ciphertext, const unsigned char* key) {
+    unsigned char plaintext[AES_BLOCK_SIZE];
+
+    AES_KEY aesKey;
+    AES_set_decrypt_key(key, 128, &aesKey);
+    AES_ecb_encrypt(reinterpret_cast<const unsigned char*>(ciphertext.data()), plaintext, &aesKey, AES_DECRYPT);
+
+    return std::string(reinterpret_cast<char*>(plaintext), AES_BLOCK_SIZE);
+}
+
 
 void aes_ctr_decrypt(const unsigned char* ciphertext, unsigned char* plaintext, size_t length, const unsigned char* key, unsigned char* iv) {
     aes_ctr_encrypt(ciphertext, plaintext, length, key, iv);
@@ -119,5 +142,13 @@ int main() {
     std::chrono::duration<double> elapsed_ctr = end_ctr - start_ctr;
     std::cout << "Time taken by CTR mode: " << elapsed_ctr.count() << " seconds" << std::endl;
     
+    // Performance measurement for ECB mode
+    auto start_ecb = std::chrono::high_resolution_clock::now();
+    string ciphertext = aes_ecb_encrypt(plaintext, Alice.key);
+    aes_ecb_decrypt(ciphertext, Alice.key);
+    auto end_ecb = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_ecb = end_ecb - start_ecb;
+    std::cout << "Time taken by ECB mode: " << elapsed_ecb.count() << " seconds" << std::endl;
+
     return 0;
 }

@@ -180,5 +180,27 @@ int main() {
     cout << "Step 5: Alice to Bob, encrypted (NB-1): " << step5_ciphertext << endl;
     
     cout << "Protocol execution complete" << endl;
+
+
+    cout << "\nIdentical Block Test" << endl;
+    
+    EncodedBlocks block_test_1(1);
+    block_test_1.AddMessageBlock(&Alice_ID);
+    const unsigned char *encoded_block_test_1 = block_test_1.EncodeBuffer();
+    size = block_test_1.EncodedSize();
+    unsigned char block_test_1_ciphertext[size];
+    aes_ctr_encrypt(encoded_block_test_1, block_test_1_ciphertext, size, session_key, iv);
+
+    EncodedBlocks block_test_2(1);
+    block_test_2.AddMessageBlock(&Alice_ID);
+    const unsigned char *encoded_block_test_2 = block_test_2.EncodeBuffer();
+    size = block_test_2.EncodedSize();
+    unsigned char block_test_2_ciphertext[size];
+    aes_ctr_encrypt(encoded_block_test_2, block_test_2_ciphertext, size, session_key, iv);
+    bool result = memcmp(block_test_1_ciphertext, block_test_2_ciphertext, size);
+    cout << "Encoded Block Test 1: " << block_test_1_ciphertext << endl;
+    cout << "Encoded Block Test 2: " << block_test_2_ciphertext << endl;
+    cout << "Identical ciphertext? " << result << endl;
+
     return 0;
 }
